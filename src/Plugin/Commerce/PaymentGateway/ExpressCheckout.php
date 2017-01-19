@@ -188,7 +188,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
   /**
    * {@inheritdoc}
    */
-  public function setExpressCheckout(PaymentInterface $payment, $urls) {
+  public function setExpressCheckout(PaymentInterface $payment, $extra) {
     $order = $payment->getOrder();
 
     $amount = $payment->getAmount()->getNumber();
@@ -213,8 +213,8 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
       'PAYMENTREQUEST_0_INVNUM' => $order->id() . '-' . REQUEST_TIME,
 
       // Set the return and cancel URLs.
-      'RETURNURL' => $urls['#return_url'],
-      'CANCELURL' => $urls['#cancel_url'],
+      'RETURNURL' => $extra['return_url'],
+      'CANCELURL' => $extra['cancel_url'],
     );
 
     $order_express_checkout_data = $order->getData('paypal_express_checkout');
