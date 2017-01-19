@@ -34,7 +34,12 @@ class ExpressCheckoutForm extends BasePaymentOffsiteForm {
         'payerid' => FALSE,
       ]);
       $order->save();
-      $redirect_url = 'https://www.sandbox.paypal.com/checkoutnow?token=' . $paypal_response['TOKEN'];
+      if ($payment_gateway_plugin->getMode() == 'test') {
+        $redirect_url = 'https://www.sandbox.paypal.com/checkoutnow?token=' . $paypal_response['TOKEN'];
+      }
+      else {
+        $redirect_url = 'https://www.paypal.com/checkoutnow?token=' . $paypal_response['TOKEN'];
+      }
     }
     else {
       $redirect_url = '';
