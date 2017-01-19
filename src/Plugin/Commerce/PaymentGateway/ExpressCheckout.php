@@ -194,6 +194,13 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
     $amount = $payment->getAmount()->getNumber();
     $configuration = $this->getConfiguration();
 
+    if ($extra['capture']) {
+      $payment_action = 'Sale';
+    }
+    else {
+      $payment_action = 'Authorization';
+    }
+
     $flow = 'ec';
     // Build a name-value pair array for this transaction.
     $nvp_data = array(
@@ -207,7 +214,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
       // them right now.
       'ALLOWNOTE' => '0',
 
-      'PAYMENTREQUEST_0_PAYMENTACTION' => 'Sale',
+      'PAYMENTREQUEST_0_PAYMENTACTION' => $payment_action,
       'PAYMENTREQUEST_0_AMT' => $this->formatNumber($amount),
       'PAYMENTREQUEST_0_CURRENCYCODE' => $payment->getAmount()->getCurrencyCode(),
       'PAYMENTREQUEST_0_INVNUM' => $order->id() . '-' . REQUEST_TIME,
@@ -295,6 +302,12 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
     // Build NVP data for PayPal API request.
     $order_express_checkout_data = $order->getData('paypal_express_checkout');
     $amount = $order->getTotalPrice()->getNumber();
+    if ($order_express_checkout_data['capture']) {
+      $payment_action = 'Sale';
+    }
+    else {
+      $payment_action = 'Authorization';
+    }
     $nvp_data = [
       'METHOD' => 'DoExpressCheckoutPayment',
       'TOKEN' => $order_express_checkout_data['token'],
@@ -302,7 +315,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
       'PAYMENTREQUEST_0_CURRENCYCODE' => $order->getTotalPrice()->getCurrencyCode(),
       'PAYMENTREQUEST_0_INVNUM' => $order->getOrderNumber(),
       'PAYERID' => $order_express_checkout_data['payerid'],
-      'PAYMENTREQUEST_0_PAYMENTACTION' => 'Sale',
+      'PAYMENTREQUEST_0_PAYMENTACTION' => $payment_action,
       //'PAYMENTREQUEST_0_NOTIFYURL' => ToDo,
     ];
 

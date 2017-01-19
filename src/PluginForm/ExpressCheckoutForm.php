@@ -4,8 +4,6 @@ namespace Drupal\commerce_paypal\PluginForm;
 
 use Drupal\commerce_payment\PluginForm\PaymentOffsiteForm as BasePaymentOffsiteForm;
 use Drupal\Core\Form\FormStateInterface;
-use GuzzleHttp\ClientInterface;
-use Drupal\Core\Url;
 
 class ExpressCheckoutForm extends BasePaymentOffsiteForm {
 
@@ -23,6 +21,7 @@ class ExpressCheckoutForm extends BasePaymentOffsiteForm {
     $extra = [
       'return_url' => $form['#return_url'],
       'cancel_url' => $form['#cancel_url'],
+      'capture' => $form['#capture'],
     ];
 
     $paypal_response = $payment_gateway_plugin->setExpressCheckout($payment, $extra);
@@ -33,6 +32,7 @@ class ExpressCheckoutForm extends BasePaymentOffsiteForm {
         'flow' => 'ec',
         'token' => $paypal_response['TOKEN'],
         'payerid' => FALSE,
+        'capture' => $extra['capture'],
       ]);
       $order->save();
 
