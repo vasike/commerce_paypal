@@ -185,8 +185,37 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
       'authorized' => REQUEST_TIME,
     ]);
 
+    // Process payment status received.
+    // ToDo : payment updates if needed.
+    // If we didn't get an approval response code...
+    switch ($paypal_response['PAYMENTINFO_0_PAYMENTSTATUS']) {
+      case 'Voided':
+        $payment->state = 'authorization_voided';
+        break;
+
+      case 'Pending':
+        $payment->state = 'authorization';
+        break;
+
+      case 'Completed':
+      case 'Processed':
+        $payment->state = 'capture_completed';
+        break;
+
+      case 'Refunded':
+        $payment->state = 'capture_refunded';
+        break;
+
+      case 'Partially-Refunded':
+        $payment->state = 'capture_partially_refunded';
+        break;
+
+      case 'Expired':
+        $payment->state = 'authorization_expired';
+        break;
+    }
+
     $payment->save();
-    drupal_set_message('Payment was processed');
   }
 
   public function onCancel(OrderInterface $order, Request $request) {
