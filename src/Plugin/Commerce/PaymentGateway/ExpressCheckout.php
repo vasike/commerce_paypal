@@ -145,7 +145,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   public function onReturn(OrderInterface $order, Request $request) {
     // GetExpressCheckoutDetails API Operation (NVP).
     // Shows information about an Express Checkout transaction.
-    $paypal_response = $this->getExpressCheckoutDetails($order);
+    $paypal_response = $this->apiGetExpressCheckoutDetails($order);
 
     // If the request failed, exit now with a failure message.
     if ($paypal_response['ACK'] == 'Failure') {
@@ -165,7 +165,13 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     // DoExpressCheckoutPayment API Operation (NVP).
     // Completes an Express Checkout transaction.
-    $paypal_response = $this->doExpressCheckoutDetails($order);
+    $paypal_response = $this->apiDoExpressCheckoutDetails($order);
+
+    // Nothing to do for failures for now - no payment saved.
+    // ToDo - more about the failures.
+    if ($paypal_response['PAYMENTINFO_0_PAYMENTSTATUS'] == 'Failed') {
+      return FALSE;
+    }
 
     $payment_storage = $this->entityTypeManager->getStorage('commerce_payment');
     $payment = $payment_storage->create([
@@ -200,7 +206,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     // GetExpressCheckoutDetails API Operation (NVP).
     // Shows information about an Express Checkout transaction.
-    $paypal_response = $this->doCapture($payment, $amount_number);
+    $paypal_response = $this->apiDoCapture($payment, $amount_number);
 
     if ($paypal_response['ACK'] == 'Failure') {
       $message = $paypal_response['L_LONGMESSAGE0'];
@@ -225,7 +231,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     // GetExpressCheckoutDetails API Operation (NVP).
     // Shows information about an Express Checkout transaction.
-    $paypal_response = $this->doVoid($payment);
+    $paypal_response = $this->apiDoVoid($payment);
 
     if ($paypal_response['ACK'] == 'Failure') {
       $message = $paypal_response['L_LONGMESSAGE0'];
@@ -276,7 +282,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     // RefundTransaction API Operation (NVP).
     // Refund (full or partial) an Express Checkout transaction.
-    $paypal_response = $this->refundTransaction($payment, $extra);
+    $paypal_response = $this->apiRefundTransaction($payment, $extra);
 
     if ($paypal_response['ACK'] == 'Failure') {
       $message = $paypal_response['L_LONGMESSAGE0'];
@@ -294,7 +300,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * {@inheritdoc}
    */
-  public function setExpressCheckout(PaymentInterface $payment, $extra) {
+  public function apiSetExpressCheckout(PaymentInterface $payment, $extra) {
     $order = $payment->getOrder();
 
     $amount = $payment->getAmount()->getNumber();
@@ -383,7 +389,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * {@inheritdoc}
    */
-  public function getExpressCheckoutDetails(OrderInterface $order) {
+  public function apiGetExpressCheckoutDetails(OrderInterface $order) {
     // Get the Express Checkout order token.
     $order_express_checkout_data = $order->getData('paypal_express_checkout');
     if (empty($order_express_checkout_data['token'])) {
@@ -404,7 +410,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * {@inheritdoc}
    */
-  public function doExpressCheckoutDetails(OrderInterface $order) {
+  public function apiDoExpressCheckoutDetails(OrderInterface $order) {
     // Build NVP data for PayPal API request.
     $order_express_checkout_data = $order->getData('paypal_express_checkout');
     $amount = $order->getTotalPrice()->getNumber();
@@ -433,7 +439,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * {@inheritdoc}
    */
-  public function doCapture(PaymentInterface $payment, $amount) {
+  public function apiDoCapture(PaymentInterface $payment, $amount) {
     $order = $payment->getOrder();
 
     // Build a name-value pair array for this transaction.
@@ -454,7 +460,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * {@inheritdoc}
    */
-  public function doVoid(PaymentInterface $payment) {
+  public function apiDoVoid(PaymentInterface $payment) {
     // Build a name-value pair array for this transaction.
     $nvp_data = array(
       'METHOD' => 'DoVoid',
@@ -469,7 +475,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   /**
    * {@inheritdoc}
    */
-  public function refundTransaction(PaymentInterface $payment, $extra) {
+  public function apiRefundTransaction(PaymentInterface $payment, $extra) {
 
     // Build a name-value pair array for this transaction.
     $nvp_data = [

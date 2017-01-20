@@ -24,7 +24,7 @@ class ExpressCheckoutForm extends BasePaymentOffsiteForm {
       'capture' => $form['#capture'],
     ];
 
-    $paypal_response = $payment_gateway_plugin->setExpressCheckout($payment, $extra);
+    $paypal_response = $payment_gateway_plugin->apiSetExpressCheckout($payment, $extra);
 
     if (!empty($paypal_response['TOKEN'])) {
       $order = $payment->getOrder();

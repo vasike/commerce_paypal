@@ -32,14 +32,14 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    *  @see https://developer.paypal.com/docs/classic/api/merchant/SetExpressCheckout_API_Operation_NVP/
    *
    * @param \Drupal\commerce_payment\Entity\PaymentInterface $payment
-   *   The order.
+   *   The payment.
    * @param array $extra
    *   Extra data needed for this request, ex.: cancel url, return url, transaction mode, etc....
    *
    * @return array[].
    *   PayPal response data array with apiRequest().
    */
-  function setExpressCheckout(PaymentInterface $payment, $extra);
+  function apiSetExpressCheckout(PaymentInterface $payment, $extra);
 
   /**
    * GetExpressCheckoutDetails API Operation (NVP) request.
@@ -53,7 +53,7 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    * @return array[].
    *   PayPal response data array with apiRequest().
    */
-  function getExpressCheckoutDetails(OrderInterface $order);
+  function apiGetExpressCheckoutDetails(OrderInterface $order);
 
   /**
    * GetExpressCheckoutDetails API Operation (NVP) request.
@@ -67,7 +67,7 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    * @return array[].
    *   PayPal response data array with apiRequest().
    */
-  function doExpressCheckoutDetails(OrderInterface $order);
+  function apiDoExpressCheckoutDetails(OrderInterface $order);
 
   /**
    * DoCapture API Operation (NVP) request.
@@ -83,7 +83,7 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    * @return array[].
    *   PayPal response data array with apiRequest().
    */
-  function doCapture(PaymentInterface $payment, $amount_number);
+  function apiDoCapture(PaymentInterface $payment, $amount_number);
 
   /**
    * DoVoid API Operation (NVP) request.
@@ -97,7 +97,7 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    * @return array[].
    *   PayPal response data array with apiRequest().
    */
-  function doVoid(PaymentInterface $payment);
+  function apiDoVoid(PaymentInterface $payment);
 
   /**
    * RefundTransaction API Operation (NVP) request.
@@ -113,5 +113,5 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    * @return array[].
    *   PayPal response data array with apiRequest().
    */
-  function refundTransaction(PaymentInterface $payment, $extra);
+  function apiRefundTransaction(PaymentInterface $payment, $extra);
 }
