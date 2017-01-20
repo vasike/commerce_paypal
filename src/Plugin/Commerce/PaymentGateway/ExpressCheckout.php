@@ -4,9 +4,11 @@ namespace Drupal\commerce_paypal\Plugin\Commerce\PaymentGateway;
 
 use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
+use Drupal\commerce_payment\Exception\PaymentGatewayException;
 use Drupal\commerce_payment\PaymentMethodTypeManager;
 use Drupal\commerce_payment\PaymentTypeManager;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayBase;
+use Drupal\commerce_price\Price;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Core\State\StateInterface;
@@ -30,7 +32,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *   },
  * )
  */
-class ExpressCheckout extends OffsitePaymentGatewayBase {
+class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressCheckoutInterface {
 
   /**
    * The HTTP client.
@@ -188,6 +190,57 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
   /**
    * {@inheritdoc}
    */
+  public function capturePayment(PaymentInterface $payment, Price $amount = NULL) {
+    if ($payment->getState()->value != 'authorization') {
+      throw new \InvalidArgumentException('Only payments in the "authorization" state can be captured.');
+    }
+    // If not specified, capture the entire amount.
+    $amount = $amount ?: $payment->getAmount();
+    $amount_number = $this->formatNumber($amount->getNumber());
+
+    // GetExpressCheckoutDetails API Operation (NVP).
+    // Shows information about an Express Checkout transaction.
+    $paypal_response = $this->doCapture($payment, $amount_number);
+
+    if ($paypal_response['ACK'] == 'Failure') {
+      $message = $paypal_response['L_LONGMESSAGE0'];
+      throw new PaymentGatewayException($message, $paypal_response['L_ERRORCODE0']);
+    }
+
+    $payment->state = 'capture_completed';
+    $payment->setAmount($amount);
+    $payment->setCapturedTime(REQUEST_TIME);
+    $payment->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function voidPayment(PaymentInterface $payment) {
+    if ($payment->getState()->value != 'authorization') {
+      throw new \InvalidArgumentException('Only payments in the "authorization" state can be voided.');
+    }
+
+    // GetExpressCheckoutDetails API Operation (NVP).
+    // Shows information about an Express Checkout transaction.
+    $paypal_response = $this->doVoid($payment);
+
+    if ($paypal_response['ACK'] == 'Failure') {
+      $message = $paypal_response['L_LONGMESSAGE0'];
+      throw new PaymentGatewayException($message, $paypal_response['L_ERRORCODE0']);
+    }
+
+    $payment->state = 'authorization_voided';
+    $payment->save();
+  }
+
+  /**
+   * PayPal Express Checkout NVP API helper methods.
+   */
+
+  /**
+   * {@inheritdoc}
+   */
   public function setExpressCheckout(PaymentInterface $payment, $extra) {
     $order = $payment->getOrder();
 
@@ -320,6 +373,42 @@ class ExpressCheckout extends OffsitePaymentGatewayBase {
     ];
 
     // Make the PayPal NVP API request.
+    return $this->apiRequest($nvp_data);
+
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function doCapture(PaymentInterface $payment, $amount) {
+    $order = $payment->getOrder();
+
+    // Build a name-value pair array for this transaction.
+    $nvp_data = array(
+      'METHOD' => 'DoCapture',
+      'AUTHORIZATIONID' => $payment->getRemoteId(),
+      'AMT' => $amount,
+      'CURRENCYCODE' => $payment->getAmount()->getCurrencyCode(),
+      'INVNUM' => $order->getOrderNumber(),
+      'COMPLETETYPE' => 'Complete',
+    );
+
+    // Make the PayPal NVP API request.s
+    return $this->apiRequest($nvp_data);
+
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function doVoid(PaymentInterface $payment) {
+    // Build a name-value pair array for this transaction.
+    $nvp_data = array(
+      'METHOD' => 'DoVoid',
+      'AUTHORIZATIONID' => $payment->getRemoteId(),
+    );
+
+    // Make the PayPal NVP API request.s
     return $this->apiRequest($nvp_data);
 
   }
