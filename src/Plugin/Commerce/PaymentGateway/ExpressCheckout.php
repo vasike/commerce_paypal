@@ -210,6 +210,8 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
     $payment->state = 'capture_completed';
     $payment->setAmount($amount);
     $payment->setCapturedTime(REQUEST_TIME);
+    // Update the remote id for the captured transaction.
+    $payment->setRemoteId($paypal_response['TRANSACTIONID']);
     $payment->save();
   }
 
@@ -231,6 +233,57 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
     }
 
     $payment->state = 'authorization_voided';
+    $payment->save();
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function refundPayment(PaymentInterface $payment, Price $amount = NULL) {
+    if (!in_array($payment->getState()->value, [
+      'capture_completed',
+      'capture_partially_refunded'
+    ])
+    ) {
+      throw new \InvalidArgumentException('Only payments in the "capture_completed" and "capture_partially_refunded" states can be refunded.');
+    }
+    // If not specified, refund the entire amount.
+    $amount = $amount ?: $payment->getAmount();
+    // Validate the requested amount.
+    $balance = $payment->getBalance();
+    if ($amount->greaterThan($balance)) {
+      throw new InvalidRequestException(sprintf("Can't refund more than %s.", $balance->__toString()));
+    }
+
+    $extra['amount'] = $this->formatNumber($amount->getNumber());
+
+    // Check if the Refund is partial or full.
+    $old_refunded_amount = $payment->getRefundedAmount();
+    $new_refunded_amount = $old_refunded_amount->add($amount);
+    if ($new_refunded_amount->lessThan($payment->getAmount())) {
+      $payment->state = 'capture_partially_refunded';
+      $extra['refund_type'] = 'Partial';
+    }
+    else {
+      $payment->state = 'capture_refunded';
+      if ($amount->lessThan($payment->getAmount())) {
+        $extra['refund_type'] = 'Partial';
+      }
+      else {
+        $extra['refund_type'] = 'Full';
+      }
+    }
+
+    // RefundTransaction API Operation (NVP).
+    // Refund (full or partial) an Express Checkout transaction.
+    $paypal_response = $this->refundTransaction($payment, $extra);
+
+    if ($paypal_response['ACK'] == 'Failure') {
+      $message = $paypal_response['L_LONGMESSAGE0'];
+      throw new PaymentGatewayException($message, $paypal_response['L_ERRORCODE0']);
+    }
+
+    $payment->setRefundedAmount($new_refunded_amount);
     $payment->save();
   }
 
@@ -407,6 +460,25 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
       'METHOD' => 'DoVoid',
       'AUTHORIZATIONID' => $payment->getRemoteId(),
     );
+
+    // Make the PayPal NVP API request.s
+    return $this->apiRequest($nvp_data);
+
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function refundTransaction(PaymentInterface $payment, $extra) {
+
+    // Build a name-value pair array for this transaction.
+    $nvp_data = [
+      'METHOD' => 'RefundTransaction',
+      'TRANSACTIONID' => $payment->getRemoteId(),
+      'REFUNDTYPE' => $extra['refund_type'],
+      'AMT' => $extra['amount'],
+      'CURRENCYCODE' => $payment->getAmount()->getCurrencyCode(),
+    ];
 
     // Make the PayPal NVP API request.s
     return $this->apiRequest($nvp_data);

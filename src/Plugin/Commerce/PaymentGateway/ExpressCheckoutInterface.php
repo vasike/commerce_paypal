@@ -6,11 +6,12 @@ use Drupal\commerce_order\Entity\OrderInterface;
 use Drupal\commerce_payment\Entity\PaymentInterface;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\OffsitePaymentGatewayInterface;
 use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsAuthorizationsInterface;
+use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsRefundsInterface;
 
 /**
  * Provides the interface for the Express Checkout payment gateway.
  */
-interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, SupportsAuthorizationsInterface {
+interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, SupportsAuthorizationsInterface, SupportsRefundsInterface {
 
   /**
    * Make a PayPal Express Checkout NVP API request.
@@ -98,4 +99,19 @@ interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, Suppo
    */
   function doVoid(PaymentInterface $payment);
 
+  /**
+   * RefundTransaction API Operation (NVP) request.
+   * Builds the data for the request and make the request.
+   *
+   *  @see https://developer.paypal.com/docs/classic/api/merchant/RefundTransaction_API_Operation_NVP/
+   *
+   * @param \Drupal\commerce_payment\Entity\PaymentInterface $payment
+   *   The payment.
+   * @param array $extra
+   *   Extra data needed for this request, ex.: refund amount, refund type, etc....
+   *
+   * @return array[].
+   *   PayPal response data array with apiRequest().
+   */
+  function refundTransaction(PaymentInterface $payment, $extra);
 }
