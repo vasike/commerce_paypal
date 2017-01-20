@@ -315,7 +315,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
 
     $flow = 'ec';
     // Build a name-value pair array for this transaction.
-    $nvp_data = array(
+    $nvp_data = [
       'METHOD' => 'SetExpressCheckout',
 
       // Default the Express Checkout landing page to the Mark solution.
@@ -334,7 +334,7 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
       // Set the return and cancel URLs.
       'RETURNURL' => $extra['return_url'],
       'CANCELURL' => $extra['cancel_url'],
-    );
+    ];
 
     $order_express_checkout_data = $order->getData('paypal_express_checkout');
     if (!empty($order_express_checkout_data['token'])) {
@@ -345,11 +345,11 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
     $n = 0;
     foreach ($order->getItems() as $item) {
       $item_amount = $item->getUnitPrice()->getNumber();
-      $nvp_data += array(
+      $nvp_data += [
         'L_PAYMENTREQUEST_0_NAME' . $n => $item->getTitle(),
         'L_PAYMENTREQUEST_0_AMT' . $n => $this->formatNumber($item_amount),
         'L_PAYMENTREQUEST_0_QTY' . $n => $item->getQuantity(),
-      );
+      ];
       $n++;
     }
 
@@ -397,10 +397,10 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
     }
 
     // Build a name-value pair array to obtain buyer information from PayPal.
-    $nvp_data = array(
+    $nvp_data = [
       'METHOD' => 'GetExpressCheckoutDetails',
       'TOKEN' => $order_express_checkout_data['token'],
-    );
+    ];
 
     // Make the PayPal NVP API request.
     return $this->apiRequest($nvp_data);
@@ -443,14 +443,14 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
     $order = $payment->getOrder();
 
     // Build a name-value pair array for this transaction.
-    $nvp_data = array(
+    $nvp_data = [
       'METHOD' => 'DoCapture',
       'AUTHORIZATIONID' => $payment->getRemoteId(),
       'AMT' => $amount,
       'CURRENCYCODE' => $payment->getAmount()->getCurrencyCode(),
       'INVNUM' => $order->getOrderNumber(),
       'COMPLETETYPE' => 'Complete',
-    );
+    ];
 
     // Make the PayPal NVP API request.s
     return $this->apiRequest($nvp_data);
@@ -462,10 +462,10 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
    */
   public function apiDoVoid(PaymentInterface $payment) {
     // Build a name-value pair array for this transaction.
-    $nvp_data = array(
+    $nvp_data = [
       'METHOD' => 'DoVoid',
       'AUTHORIZATIONID' => $payment->getRemoteId(),
-    );
+    ];
 
     // Make the PayPal NVP API request.s
     return $this->apiRequest($nvp_data);
@@ -497,13 +497,13 @@ class ExpressCheckout extends OffsitePaymentGatewayBase implements ExpressChecko
   public function apiRequest($nvp_data) {
     // Add the default name-value pairs to the array.
     $configuration = $this->getConfiguration();
-    $nvp_data += array(
+    $nvp_data += [
       // API credentials
       'USER' => $configuration['api_username'],
       'PWD' => $configuration['api_password'],
       'SIGNATURE' => $configuration['signature'],
       'VERSION' => '124.0',
-    );
+    ];
 
     $mode = $this->getMode();
     if ($mode == 'test') {
