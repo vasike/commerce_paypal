@@ -14,6 +14,17 @@ use Drupal\commerce_payment\Plugin\Commerce\PaymentGateway\SupportsRefundsInterf
 interface ExpressCheckoutInterface extends OffsitePaymentGatewayInterface, SupportsAuthorizationsInterface, SupportsRefundsInterface {
 
   /**
+   * Loads the payment for a given remote id.
+   *
+   * @param string $remote_id
+   *   The remote id property for a payment.
+   *
+   * @return \Drupal\commerce_payment\Entity\PaymentInterface.
+   *   Payment object.
+   */
+  function loadPaymentByRemoteId($remote_id);
+
+  /**
    * Make a PayPal Express Checkout NVP API request.
    *
    * @param array $nvp_data
